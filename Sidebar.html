@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <base target="_top" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Meiryo", "Yu Gothic", "Hiragino Sans", sans-serif;
+      background: #fafafa;
+      color: #333;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+      color: #b71c1c;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #555;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #b71c1c;
+    }
+
+    .btn-stamp {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #fff;
+      background: #c62828;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-stamp:hover { background: #b71c1c; }
+    .btn-stamp:active { background: #8e0000; }
+    .btn-stamp:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .preview-area {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .preview-area p {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    #preview-canvas {
+      border: 1px dashed #ddd;
+      border-radius: 50%;
+    }
+
+    #status {
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .status-success { color: #2e7d32; }
+    .status-error { color: #c62828; }
+  </style>
+</head>
+<body>
+  <h1>&#x2764; 電子印鑑（データ印）</h1>
+  <p id="host-label" style="text-align:center;font-size:11px;color:#888;margin-bottom:12px;">Google Workspace 用</p>
+
+  <div class="form-group">
+    <label for="top-text">上段（苗字など）</label>
+    <input type="text" id="top-text" value="" maxlength="6" placeholder="読み込み中..." />
+  </div>
+
+  <div class="form-group">
+    <label for="mid-text">中段（日付 YYYY/MM/DD）</label>
+    <input type="text" id="mid-text" maxlength="10" />
+  </div>
+
+  <div class="form-group">
+    <label for="bottom-text">下段（部署名など・空欄可）</label>
+    <input type="text" id="bottom-text" value="" maxlength="6" placeholder="例：営業部" />
+  </div>
+
+  <button class="btn-stamp" id="btn-stamp">押 印</button>
+
+  <div id="status"></div>
+
+  <div class="preview-area">
+    <p>プレビュー</p>
+    <canvas id="preview-canvas" width="200" height="200"></canvas>
+  </div>
+
+  <script>
+    // ---------- 定数 ----------
+    var STAMP_SIZE = 200;
+    var STAMP_COLOR = "#c62828";
+    var TRACKING_COLOR = "#aaaaaa";
+    var TRACKING_FONT_SIZE = 8;
+
+    // ---------- DOM 要素 ----------
+    var topTextEl, midTextEl, bottomTextEl, btnStamp, statusEl, canvas, ctx;
+
+    // ---------- 初期化 ----------
+    window.addEventListener("DOMContentLoaded", function () {
+      topTextEl = document.getElementById("top-text");
+      midTextEl = document.getElementById("mid-text");
+      bottomTextEl = document.getElementById("bottom-text");
+      btnStamp = document.getElementById("btn-stamp");
+      statusEl = document.getElementById("status");
+      canvas = document.getElementById("preview-canvas");
+      ctx = canvas.getContext("2d");
+
+      // 今日の日付を初期表示
+      midTextEl.value = formatToday();
+
+      // 入力変更でプレビュー更新
+      [topTextEl, midTextEl, bottomTextEl].forEach(function (el) {
+        el.addEventListener("input", drawPreview);
+      });
+
+      btnStamp.addEventListener("click", onStamp);
+
+      // サーバー側からアカウント情報に基づく苗字を取得して自動セット
+      google.script.run
+        .withSuccessHandler(function (name) {
+          topTextEl.value = name;
+          topTextEl.placeholder = "例：営業部";
+          drawPreview();
+        })
+        .withFailureHandler(function () {
+          topTextEl.value = "山田";
+          topTextEl.placeholder = "";
+          drawPreview();
+        })
+        .getUserLastName();
+
+      drawPreview();
+    });
+
+    // ---------- 日付ヘルパー ----------
+    function formatToday() {
+      var d = new Date();
+      var yyyy = d.getFullYear();
+      var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+      var dd = ("0" + d.getDate()).slice(-2);
+      return yyyy + "/" + mm + "/" + dd;
+    }
+
+    // ---------- トラッキングID生成 ----------
+    function generateTrackingId() {
+      var arr = new Uint8Array(4);
+      crypto.getRandomValues(arr);
+      return Array.from(arr, function (b) {
+        return b.toString(16).padStart(2, "0");
+      }).join("");
+    }
+
+    // ---------- Canvas 描画 ----------
+    function drawPreview() {
+      drawStamp(ctx, STAMP_SIZE, topTextEl.value, midTextEl.value, bottomTextEl.value);
+    }
+
+    function drawStamp(c, size, top, mid, bottom, trackingId) {
+      var cx = size / 2;
+      var cy = size / 2;
+      var radius = size / 2 - 6;
+      var lineWidth = 3;
+
+      c.clearRect(0, 0, size, size);
+      c.strokeStyle = STAMP_COLOR;
+      c.fillStyle = STAMP_COLOR;
+      c.lineWidth = lineWidth;
+
+      // 外枠 (円)
+      c.beginPath();
+      c.arc(cx, cy, radius, 0, Math.PI * 2);
+      c.stroke();
+
+      // 横線 (3分割)
+      var divY1 = cy - radius / 3;
+      var divY2 = cy + radius / 3;
+
+      drawChordLine(c, cx, cy, radius, divY1);
+      drawChordLine(c, cx, cy, radius, divY2);
+
+      // テキスト描画
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      var topAreaH = radius / 3 * 2;
+      drawFittedText(c, top, cx, (cy - radius + divY1) / 2, radius, topAreaH);
+      drawFittedText(c, mid, cx, cy, radius, divY2 - divY1, true);
+      drawFittedText(c, bottom, cx, (divY2 + cy + radius) / 2, radius, topAreaH);
+
+      // トラッキングID
+      if (trackingId) {
+        c.save();
+        c.fillStyle = TRACKING_COLOR;
+        c.font = TRACKING_FONT_SIZE + "px 'Consolas', 'Courier New', monospace";
+        c.textAlign = "right";
+        c.textBaseline = "top";
+        c.fillText(trackingId, cx + radius * 0.72, cy + radius * 0.72);
+        c.restore();
+      }
+    }
+
+    function drawChordLine(c, cx, cy, r, y) {
+      var dy = y - cy;
+      var halfChord = Math.sqrt(r * r - dy * dy);
+      c.beginPath();
+      c.moveTo(cx - halfChord, y);
+      c.lineTo(cx + halfChord, y);
+      c.stroke();
+    }
+
+    function drawFittedText(c, text, x, y, maxWidth, areaHeight, isDate) {
+      if (!text) return;
+
+      var usableWidth = maxWidth * 1.4;
+      var fontSize = Math.floor(areaHeight * 0.65);
+      if (fontSize < 8) fontSize = 8;
+
+      var fontFamily = isDate
+        ? "'Consolas', 'Courier New', monospace"
+        : "'Meiryo', 'Yu Gothic', 'Hiragino Sans', sans-serif";
+
+      for (; fontSize >= 8; fontSize -= 1) {
+        c.font = "bold " + fontSize + "px " + fontFamily;
+        if (c.measureText(text).width <= usableWidth) break;
+      }
+
+      c.fillStyle = STAMP_COLOR;
+      c.fillText(text, x, y);
+    }
+
+    // ---------- 押印処理 ----------
+    function onStamp() {
+      setStatus("", "");
+      btnStamp.disabled = true;
+
+      var trackingId = generateTrackingId();
+
+      // オフスクリーン Canvas で画像生成
+      var offCanvas = document.createElement("canvas");
+      offCanvas.width = STAMP_SIZE;
+      offCanvas.height = STAMP_SIZE;
+      var offCtx = offCanvas.getContext("2d");
+
+      drawStamp(offCtx, STAMP_SIZE, topTextEl.value, midTextEl.value, bottomTextEl.value, trackingId);
+
+      // Base64 PNG（data URL形式）
+      var dataUrl = offCanvas.toDataURL("image/png");
+
+      // GAS サーバー側に送信して画像挿入
+      google.script.run
+        .withSuccessHandler(function (msg) {
+          setStatus(msg + " (ID: " + trackingId + ")", "success");
+          btnStamp.disabled = false;
+        })
+        .withFailureHandler(function (err) {
+          setStatus("エラー: " + err.message, "error");
+          btnStamp.disabled = false;
+        })
+        .insertStampImage(dataUrl);
+    }
+
+    // ---------- ステータス表示 ----------
+    function setStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type ? "status-" + type : "";
+    }
+  </script>
+</body>
+</html>
