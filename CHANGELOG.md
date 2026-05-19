@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README に「これは何？（30秒で）」「想定ユースケース・価格帯」セクションを追加
 - SECURITY.md を追加（脆弱性報告フロー）
 - 商用利用・カスタマイズ依頼の連絡先を README 末尾に明記
+- **証跡（押印履歴）機能**：押印ごとに `timestamp / trackingId / host_app / user_email / 上中下段テキスト` を UserProperties に永続化（Google アカウントごと）
+- **CSV エクスポート機能**：サーバ側で CSV を生成 → クライアントが Blob ダウンロード（`hanko_audit_YYYYMMDD_HHMMSS.csv`）
+- 履歴クリアボタン（誤操作防止の確認ダイアログ付き）
+- UserProperties 容量上限（9KB/key）に近づいた場合は古いエントリを自動削除＋警告表示
+- docs/store-listing/MARKETPLACE_JA.md — Google Workspace Marketplace 提出用テンプレート
 
 ## [0.1.0]
 

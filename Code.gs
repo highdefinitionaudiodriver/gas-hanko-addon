@@ -160,6 +160,116 @@ function insertIntoDocument_(blob) {
   return "ドキュメント末尾に押印しました（カーソル位置を取得できなかったため）";
 }
 
+// ==========================================================
+//  証跡 (Audit Log) — UserProperties で個人ごとに永続化
+//  法人プラン想定: Drive Sheet への一括同期・部署別集計を別途提供
+// ==========================================================
+
+var AUDIT_LOG_KEY = "hanko_audit_log_v1";
+var AUDIT_LOG_MAX_BYTES = 8 * 1024;  // UserProperties は 9KB/key が上限。8KB で警告
+
+/**
+ * 押印イベントを証跡に追記する
+ * @param {Object} entry { trackingId, timestamp, topText, midText, bottomText }
+ * @return {Object} { ok, count, warning? }
+ */
+function appendAuditEntry(entry) {
+  if (!entry || typeof entry !== "object") throw new Error("invalid entry");
+  var props = PropertiesService.getUserProperties();
+  var raw = props.getProperty(AUDIT_LOG_KEY);
+  var log = [];
+  if (raw) {
+    try { log = JSON.parse(raw); if (!Array.isArray(log)) log = []; } catch (e) { log = []; }
+  }
+  var record = {
+    trackingId: String(entry.trackingId || ""),
+    timestamp:  entry.timestamp || new Date().toISOString(),
+    host:       getHostApp_(),
+    user:       Session.getActiveUser().getEmail() || "",
+    topText:    String(entry.topText || ""),
+    midText:    String(entry.midText || ""),
+    bottomText: String(entry.bottomText || "")
+  };
+  log.push(record);
+
+  var serialized = JSON.stringify(log);
+  var warning = null;
+  if (serialized.length > AUDIT_LOG_MAX_BYTES) {
+    // 古いエントリから消して 80% 以下まで縮める
+    while (log.length > 0 && JSON.stringify(log).length > AUDIT_LOG_MAX_BYTES * 0.8) {
+      log.shift();
+    }
+    serialized = JSON.stringify(log);
+    warning = "ローカル証跡容量上限に達したため、古いエントリを自動削除しました（法人プランでクラウド集約推奨）";
+  }
+  props.setProperty(AUDIT_LOG_KEY, serialized);
+  return { ok: true, count: log.length, warning: warning };
+}
+
+/**
+ * 証跡の件数を返す
+ * @return {number}
+ */
+function getAuditCount() {
+  var props = PropertiesService.getUserProperties();
+  var raw = props.getProperty(AUDIT_LOG_KEY);
+  if (!raw) return 0;
+  try {
+    var log = JSON.parse(raw);
+    return Array.isArray(log) ? log.length : 0;
+  } catch (e) { return 0; }
+}
+
+/**
+ * 証跡を全削除
+ * @return {Object}
+ */
+function clearAuditLog() {
+  PropertiesService.getUserProperties().deleteProperty(AUDIT_LOG_KEY);
+  return { ok: true };
+}
+
+/**
+ * CSV 1 セルを RFC4180 風にエスケープ
+ */
+function csvCell_(v) {
+  if (v == null) return "";
+  var s = String(v);
+  if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+/**
+ * 証跡を CSV 文字列として返す（UTF-8 BOM 付き）
+ * クライアントが Blob + <a download> でダウンロードする
+ * @return {Object} { ok, csv, count, filename }
+ */
+function exportAuditCsv() {
+  var props = PropertiesService.getUserProperties();
+  var raw = props.getProperty(AUDIT_LOG_KEY);
+  var log = [];
+  if (raw) {
+    try { log = JSON.parse(raw); if (!Array.isArray(log)) log = []; } catch (e) { log = []; }
+  }
+  var headers = ["timestamp_iso8601","tracking_id","host_app","user_email","top_text","middle_text","bottom_text"];
+  var lines = [headers.join(",")];
+  for (var i = 0; i < log.length; i++) {
+    var e = log[i];
+    lines.push([
+      csvCell_(e.timestamp), csvCell_(e.trackingId), csvCell_(e.host),
+      csvCell_(e.user), csvCell_(e.topText), csvCell_(e.midText), csvCell_(e.bottomText)
+    ].join(","));
+  }
+  var csv = "﻿" + lines.join("\r\n") + "\r\n";
+
+  var d = new Date();
+  var pad = function (n) { return ("0" + n).slice(-2); };
+  var fname = "hanko_audit_" +
+    d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "_" +
+    pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()) + ".csv";
+  return { ok: true, csv: csv, count: log.length, filename: fname };
+}
+
 /**
  * スライド: 現在選択中のスライドに挿入
  */
