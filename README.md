@@ -2,6 +2,23 @@
 
 日本のビジネスシーンで使われる**データ印（電子印鑑）**を、Google スプレッドシート・ドキュメント・スライドに挿入する Google Apps Script アドオンです。
 
+---
+
+## 🎯 これは何？（30秒で）
+
+- **誰のため**：Google Workspace を導入しているが日本式押印文化が残っている中小企業／在宅勤務環境の総務・経理
+- **何が解決される**：Google ドキュメント／スプレッドシート／スライド内で **ワンクリック電子押印**。社内承認フローを Google Workspace で完結
+- **なぜ既存ツールではダメか**：商用電子印鑑サービスは大半が Microsoft Office 向け、または独自プラットフォーム。本ツールは **Google Workspace Marketplace 配布可能**で、組織展開も個人利用もすぐ可能
+- **使う条件**：Google アカウント（個人・Workspace どちらも可）／ブラウザのみ・インストール不要
+
+## 💰 想定ユースケース・価格帯
+
+| 用途 | 形態 |
+|---|---|
+| 個人利用 | 無料（MIT） |
+| 法人利用（証跡 CSV エクスポート・部署一括展開） | 今後の有料機能として検討 |
+| カスタマイズ・社内テンプレ統一・Google SSO 連携 | 応相談 |
+
 ![Google Workspace](https://img.shields.io/badge/Google%20Workspace-Sheets%20%7C%20Docs%20%7C%20Slides-34A853)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![GAS](https://img.shields.io/badge/runtime-Google%20Apps%20Script%20V8-4285F4)
@@ -154,3 +171,11 @@ var targetPt = 60;     // スライド挿入サイズ (pt)
 ## ライセンス
 
 MIT License - Copyright (c) 2026 highdefinitionaudiodriver
+
+---
+
+## 🤝 商用利用・カスタマイズ依頼
+
+- 個人利用は無料（MIT ライセンス）
+- 法人導入支援、カスタマイズ、業務テンプレ整備、追加機能開発は応相談
+- 連絡先：highdefinitionaudiodriver@gmail.com
