@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 履歴クリアボタン（誤操作防止の確認ダイアログ付き）
 - UserProperties 容量上限（9KB/key）に近づいた場合は古いエントリを自動削除＋警告表示
 - docs/store-listing/MARKETPLACE_JA.md — Google Workspace Marketplace 提出用テンプレート
+- **印影バリエーション 3 形状**（丸 / 角 / スタンプ）
+  - サイドバーに 3 形状のラジオセレクタを追加
+  - drawStamp() を形状ディスパッチに刷新
+  - 角印は正方形外枠 + 水平 3 分割
+  - スタンプ風は角丸長方形（横長）で部署印・会社印を想定
+  - 証跡 CSV に `shape` 列を追加（UserProperties + クライアント側）
 
 ## [0.1.0]
 

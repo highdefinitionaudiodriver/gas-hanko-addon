@@ -186,6 +186,7 @@ function appendAuditEntry(entry) {
     timestamp:  entry.timestamp || new Date().toISOString(),
     host:       getHostApp_(),
     user:       Session.getActiveUser().getEmail() || "",
+    shape:      String(entry.shape || "circle"),
     topText:    String(entry.topText || ""),
     midText:    String(entry.midText || ""),
     bottomText: String(entry.bottomText || "")
@@ -251,13 +252,14 @@ function exportAuditCsv() {
   if (raw) {
     try { log = JSON.parse(raw); if (!Array.isArray(log)) log = []; } catch (e) { log = []; }
   }
-  var headers = ["timestamp_iso8601","tracking_id","host_app","user_email","top_text","middle_text","bottom_text"];
+  var headers = ["timestamp_iso8601","tracking_id","host_app","user_email","shape","top_text","middle_text","bottom_text"];
   var lines = [headers.join(",")];
   for (var i = 0; i < log.length; i++) {
     var e = log[i];
     lines.push([
       csvCell_(e.timestamp), csvCell_(e.trackingId), csvCell_(e.host),
-      csvCell_(e.user), csvCell_(e.topText), csvCell_(e.midText), csvCell_(e.bottomText)
+      csvCell_(e.user), csvCell_(e.shape || "circle"),
+      csvCell_(e.topText), csvCell_(e.midText), csvCell_(e.bottomText)
     ].join(","));
   }
   var csv = "﻿" + lines.join("\r\n") + "\r\n";

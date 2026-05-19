@@ -125,6 +125,19 @@
     .btn-secondary:disabled { color: #aaa; cursor: not-allowed; background: #f7f7f7; }
     .btn-secondary.danger { color: #b71c1c; }
     .btn-secondary.danger:hover { background: #ffebee; }
+
+    /* === 印影スタイル選択 === */
+    .shape-options {
+      display: flex; gap: 4px;
+      border: 1px solid #ddd; border-radius: 6px;
+      padding: 3px; background: #fff;
+    }
+    .shape-option { flex: 1; position: relative; cursor: pointer; font-size: 12px; text-align: center; }
+    .shape-option input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+    .shape-option span { display: block; padding: 7px 4px; border-radius: 4px; color: #555; transition: all 0.15s; }
+    .shape-option input[type="radio"]:checked + span { background: #c62828; color: #fff; font-weight: 600; }
+    .shape-option:hover span { background: #ffebee; color: #c62828; }
+    .shape-option input[type="radio"]:checked + span:hover { background: #b71c1c; color: #fff; }
   </style>
 </head>
 <body>
@@ -144,6 +157,15 @@
   <div class="form-group">
     <label for="bottom-text">下段（部署名など・空欄可）</label>
     <input type="text" id="bottom-text" value="" maxlength="6" placeholder="例：営業部" />
+  </div>
+
+  <div class="form-group">
+    <label>印影スタイル</label>
+    <div class="shape-options" id="shape-options">
+      <label class="shape-option"><input type="radio" name="shape" value="circle" checked /><span>● 丸</span></label>
+      <label class="shape-option"><input type="radio" name="shape" value="square" /><span>■ 角</span></label>
+      <label class="shape-option"><input type="radio" name="shape" value="stamp" /><span>▤ スタンプ</span></label>
+    </div>
   </div>
 
   <button class="btn-stamp" id="btn-stamp">押 印</button>
@@ -202,6 +224,11 @@
         el.addEventListener("input", drawPreview);
       });
 
+      // 印影スタイル変更でプレビュー更新
+      document.querySelectorAll('input[name="shape"]').forEach(function (el) {
+        el.addEventListener("change", drawPreview);
+      });
+
       btnStamp.addEventListener("click", onStamp);
 
       // 証跡 UI 初期化
@@ -247,15 +274,21 @@
       }).join("");
     }
 
-    // ---------- Canvas 描画 ----------
-    function drawPreview() {
-      drawStamp(ctx, STAMP_SIZE, topTextEl.value, midTextEl.value, bottomTextEl.value);
+    // ---------- 印影スタイル ----------
+    function getSelectedShape() {
+      var sel = document.querySelector('input[name="shape"]:checked');
+      return sel ? sel.value : "circle";
     }
 
-    function drawStamp(c, size, top, mid, bottom, trackingId) {
+    // ---------- Canvas 描画 ----------
+    function drawPreview() {
+      drawStamp(ctx, STAMP_SIZE, topTextEl.value, midTextEl.value, bottomTextEl.value, null, getSelectedShape());
+    }
+
+    function drawStamp(c, size, top, mid, bottom, trackingId, shape) {
+      shape = shape || "circle";
       var cx = size / 2;
       var cy = size / 2;
-      var radius = size / 2 - 6;
       var lineWidth = 3;
 
       c.clearRect(0, 0, size, size);
@@ -263,37 +296,89 @@
       c.fillStyle = STAMP_COLOR;
       c.lineWidth = lineWidth;
 
-      // 外枠 (円)
-      c.beginPath();
-      c.arc(cx, cy, radius, 0, Math.PI * 2);
-      c.stroke();
+      if (shape === "square") {
+        drawSquareFrame_(c, size, cx, cy);
+        drawSquareBody_(c, size, cx, cy, top, mid, bottom);
+      } else if (shape === "stamp") {
+        drawStampFrame_(c, size, cx, cy);
+        drawStampBody_(c, size, cx, cy, top, mid, bottom);
+      } else {
+        drawCircleFrame_(c, size, cx, cy);
+        drawCircleBody_(c, size, cx, cy, top, mid, bottom);
+      }
 
-      // 横線 (3分割)
-      var divY1 = cy - radius / 3;
-      var divY2 = cy + radius / 3;
-
-      drawChordLine(c, cx, cy, radius, divY1);
-      drawChordLine(c, cx, cy, radius, divY2);
-
-      // テキスト描画
-      c.textAlign = "center";
-      c.textBaseline = "middle";
-
-      var topAreaH = radius / 3 * 2;
-      drawFittedText(c, top, cx, (cy - radius + divY1) / 2, radius, topAreaH);
-      drawFittedText(c, mid, cx, cy, radius, divY2 - divY1, true);
-      drawFittedText(c, bottom, cx, (divY2 + cy + radius) / 2, radius, topAreaH);
-
-      // トラッキングID
+      // トラッキングID (右下に極小グレー文字)
       if (trackingId) {
         c.save();
         c.fillStyle = TRACKING_COLOR;
         c.font = TRACKING_FONT_SIZE + "px 'Consolas', 'Courier New', monospace";
         c.textAlign = "right";
         c.textBaseline = "top";
-        c.fillText(trackingId, cx + radius * 0.72, cy + radius * 0.72);
+        var pad = size * 0.06;
+        c.fillText(trackingId, size - pad, size - pad - TRACKING_FONT_SIZE);
         c.restore();
       }
+    }
+
+    // ── 丸印 ───────────────────────────────────────────────────
+    function drawCircleFrame_(c, size, cx, cy) {
+      var r = size / 2 - 6;
+      c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke();
+    }
+    function drawCircleBody_(c, size, cx, cy, top, mid, bottom) {
+      var r = size / 2 - 6;
+      var divY1 = cy - r / 3, divY2 = cy + r / 3;
+      drawChordLine(c, cx, cy, r, divY1);
+      drawChordLine(c, cx, cy, r, divY2);
+      c.textAlign = "center"; c.textBaseline = "middle";
+      var topAreaH = r / 3 * 2;
+      drawFittedText(c, top,    cx, (cy - r + divY1) / 2, r, topAreaH);
+      drawFittedText(c, mid,    cx, cy,                    r, divY2 - divY1, true);
+      drawFittedText(c, bottom, cx, (divY2 + cy + r) / 2,  r, topAreaH);
+    }
+
+    // ── 角印 ───────────────────────────────────────────────────
+    function drawSquareFrame_(c, size, cx, cy) {
+      var half = size / 2 - 6;
+      c.strokeRect(cx - half, cy - half, half * 2, half * 2);
+    }
+    function drawSquareBody_(c, size, cx, cy, top, mid, bottom) {
+      var half = size / 2 - 6;
+      var divY1 = cy - half / 3, divY2 = cy + half / 3;
+      c.beginPath(); c.moveTo(cx - half, divY1); c.lineTo(cx + half, divY1); c.stroke();
+      c.beginPath(); c.moveTo(cx - half, divY2); c.lineTo(cx + half, divY2); c.stroke();
+      c.textAlign = "center"; c.textBaseline = "middle";
+      var areaH = (half * 2) / 3;
+      drawFittedText(c, top,    cx, cy - half + areaH / 2, half * 1.4, areaH);
+      drawFittedText(c, mid,    cx, cy,                    half * 1.4, areaH, true);
+      drawFittedText(c, bottom, cx, cy + half - areaH / 2, half * 1.4, areaH);
+    }
+
+    // ── スタンプ風 ────────────────────────────────────────────
+    function drawStampFrame_(c, size, cx, cy) {
+      var w = size / 2 - 4, h = size / 2.4, r = h * 0.18;
+      c.beginPath();
+      c.moveTo(cx - w + r, cy - h);
+      c.lineTo(cx + w - r, cy - h);
+      c.quadraticCurveTo(cx + w, cy - h, cx + w, cy - h + r);
+      c.lineTo(cx + w, cy + h - r);
+      c.quadraticCurveTo(cx + w, cy + h, cx + w - r, cy + h);
+      c.lineTo(cx - w + r, cy + h);
+      c.quadraticCurveTo(cx - w, cy + h, cx - w, cy + h - r);
+      c.lineTo(cx - w, cy - h + r);
+      c.quadraticCurveTo(cx - w, cy - h, cx - w + r, cy - h);
+      c.closePath(); c.stroke();
+    }
+    function drawStampBody_(c, size, cx, cy, top, mid, bottom) {
+      var w = size / 2 - 4, h = size / 2.4;
+      var divY1 = cy - h / 3, divY2 = cy + h / 3;
+      c.beginPath(); c.moveTo(cx - w, divY1); c.lineTo(cx + w, divY1); c.stroke();
+      c.beginPath(); c.moveTo(cx - w, divY2); c.lineTo(cx + w, divY2); c.stroke();
+      c.textAlign = "center"; c.textBaseline = "middle";
+      var areaH = (h * 2) / 3;
+      drawFittedText(c, top,    cx, cy - h + areaH / 2, w * 1.8, areaH);
+      drawFittedText(c, mid,    cx, cy,                  w * 1.8, areaH, true);
+      drawFittedText(c, bottom, cx, cy + h - areaH / 2, w * 1.8, areaH);
     }
 
     function drawChordLine(c, cx, cy, r, y) {
@@ -338,7 +423,7 @@
       offCanvas.height = STAMP_SIZE;
       var offCtx = offCanvas.getContext("2d");
 
-      drawStamp(offCtx, STAMP_SIZE, topTextEl.value, midTextEl.value, bottomTextEl.value, trackingId);
+      drawStamp(offCtx, STAMP_SIZE, topTextEl.value, midTextEl.value, bottomTextEl.value, trackingId, getSelectedShape());
 
       // Base64 PNG（data URL形式）
       var dataUrl = offCanvas.toDataURL("image/png");
@@ -360,6 +445,7 @@
             .appendAuditEntry({
               trackingId: trackingId,
               timestamp:  new Date().toISOString(),
+              shape:      getSelectedShape(),
               topText:    topTextEl.value,
               midText:    midTextEl.value,
               bottomText: bottomTextEl.value
