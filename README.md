@@ -25,6 +25,13 @@
 
 ---
 
+## 🎬 デモ
+
+<!-- docs/demo.gif に「Google Workspaceでアドオン起動 → 印影設定 → Sheets/Docs/Slidesへの押印 → 証跡CSVエクスポート」までの30秒デモGIFを配置してください。 -->
+![GAS Hanko Add-on demo](docs/demo.gif)
+
+---
+
 ## 特徴
 
 - **3アプリ対応** — スプレッドシート / ドキュメント / スライドで共通利用
@@ -49,6 +56,13 @@
     │  プレビュー   │
     └─────────────┘
 ```
+
+## Marketplace 審査前チェック
+
+- Google Workspace Marketplace SDK のアプリ構成でサポートURLを `https://github.com/highdefinitionaudiodriver/gas-hanko-addon/issues` に設定
+- プライバシーポリシーURLは README / SECURITY を元に GitHub Pages 等の公開ページへ登録
+- OAuth同意画面では、利用スコープが現在開いている Sheets / Docs / Slides とユーザーemail取得に限定されることを説明
+- スクリーンショット5枚と30秒デモGIFを `docs/store-listing/` と `docs/demo.gif` に配置
 
 ## セットアップ
 

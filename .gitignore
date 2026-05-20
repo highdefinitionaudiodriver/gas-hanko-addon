@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+env/
+.env
+.idea/
+.vscode/
+*.egg-info/
+dist/
+releases/
+
+# Local clasp / GAS state
+.clasp.json
+*.log
+
+# Local exports
+audit_log_*.csv
