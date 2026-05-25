@@ -193,3 +193,15 @@ MIT License - Copyright (c) 2026 highdefinitionaudiodriver
 - 個人利用は無料（MIT ライセンス）
 - 法人導入支援、カスタマイズ、業務テンプレ整備、追加機能開発は応相談
 - 連絡先：highdefinitionaudiodriver@gmail.com
+
+<!-- CODEX-CURRENT-STATUS:START -->
+## 現状サマリ (2026-05-25)
+
+- 対象: GAS Hanko Add-on (電子印鑑 for Google Workspace)
+- 作業ブランチ: feat/sellable-v1
+- README更新時点の参照コミット: ddbbe05 docs: Marketplace審査導線とローカル生成物除外を追加（実機未検証）
+- docs ディレクトリ配下に設計・運用・補足資料を配置。
+- 主要な確認コマンド: README 記載のセットアップ・検証コマンド
+- 次に進めるなら、README 内の利用手順と既存 docs / tests を起点に、未整備の検証手順・引き継ぎメモ・CI 化を補強する。
+<!-- CODEX-CURRENT-STATUS:END -->
+
