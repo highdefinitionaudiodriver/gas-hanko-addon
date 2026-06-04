@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-04
+
 ### Changed
 - 証跡 CSV 生成を GAS サービス非依存の純粋関数 `buildAuditCsv_(log)` に切り出し（`exportAuditCsv` から利用）
 

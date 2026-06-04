@@ -1,6 +1,6 @@
 {
   "name": "gas-hanko-addon",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "電子印鑑（データ印）Google Workspace アドオン",
   "private": true,
   "scripts": {
