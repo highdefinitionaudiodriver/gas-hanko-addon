@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- 証跡 CSV 生成を GAS サービス非依存の純粋関数 `buildAuditCsv_(log)` に切り出し（`exportAuditCsv` から利用）
+
 ### Added
+- 単体テスト `tests/audit-csv.test.mjs`（9ケース）と `npm test` を追加。Code.gs を Node の `vm` で評価し、`csvCell_` / `buildAuditCsv_` の RFC4180 エスケープ・UTF-8 BOM・CRLF・shape 既定値・8 列ヘッダーを検証
 - README に「これは何？（30秒で）」「想定ユースケース・価格帯」セクションを追加
 - SECURITY.md を追加（脆弱性報告フロー）
 - 商用利用・カスタマイズ依頼の連絡先を README 末尾に明記

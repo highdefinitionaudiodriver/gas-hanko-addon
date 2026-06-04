@@ -241,6 +241,28 @@ function csvCell_(v) {
 }
 
 /**
+ * 証跡ログ（配列）を CSV 文字列に変換する純粋関数
+ *  - UTF-8 BOM 付き / 行区切り CRLF / 末尾改行付き（Excel での文字化け回避）
+ *  - GAS サービスに依存しないため単体テスト可能
+ * @param {Array<Object>} log
+ * @return {string}
+ */
+function buildAuditCsv_(log) {
+  var headers = ["timestamp_iso8601","tracking_id","host_app","user_email","shape","top_text","middle_text","bottom_text"];
+  var lines = [headers.join(",")];
+  var arr = Array.isArray(log) ? log : [];
+  for (var i = 0; i < arr.length; i++) {
+    var e = arr[i] || {};
+    lines.push([
+      csvCell_(e.timestamp), csvCell_(e.trackingId), csvCell_(e.host),
+      csvCell_(e.user), csvCell_(e.shape || "circle"),
+      csvCell_(e.topText), csvCell_(e.midText), csvCell_(e.bottomText)
+    ].join(","));
+  }
+  return "﻿" + lines.join("\r\n") + "\r\n";
+}
+
+/**
  * 証跡を CSV 文字列として返す（UTF-8 BOM 付き）
  * クライアントが Blob + <a download> でダウンロードする
  * @return {Object} { ok, csv, count, filename }
@@ -252,17 +274,7 @@ function exportAuditCsv() {
   if (raw) {
     try { log = JSON.parse(raw); if (!Array.isArray(log)) log = []; } catch (e) { log = []; }
   }
-  var headers = ["timestamp_iso8601","tracking_id","host_app","user_email","shape","top_text","middle_text","bottom_text"];
-  var lines = [headers.join(",")];
-  for (var i = 0; i < log.length; i++) {
-    var e = log[i];
-    lines.push([
-      csvCell_(e.timestamp), csvCell_(e.trackingId), csvCell_(e.host),
-      csvCell_(e.user), csvCell_(e.shape || "circle"),
-      csvCell_(e.topText), csvCell_(e.midText), csvCell_(e.bottomText)
-    ].join(","));
-  }
-  var csv = "﻿" + lines.join("\r\n") + "\r\n";
+  var csv = buildAuditCsv_(log);
 
   var d = new Date();
   var pad = function (n) { return ("0" + n).slice(-2); };
